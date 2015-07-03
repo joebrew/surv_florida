@@ -1,0 +1,8 @@
+*.Rapp.history
+*.Rhistory
+data/
+credentials/
+*.Rproj.user
+*.log
+*.RData
+.Rproj.user
