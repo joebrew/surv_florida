@@ -1,0 +1,1393 @@
+\documentclass[12pt]{article}
+\pagestyle{empty}
+\usepackage{multicol}
+\usepackage{tabularx}
+\usepackage{geometry}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{helvet}
+\usepackage{color}
+\usepackage[margin=10pt, font=small,labelfont=bf,textfont=it]{caption} % Custom captions under/above floats in tables or figures
+\usepackage{booktabs} % Horizontal rules in tables
+\usepackage{float}
+\setlength{\columnsep}{1.5cm}
+%\setlength{\columnseprule}{0.4pt}
+\setlength{\footskip}{20pt}
+\usepackage{fancyhdr}
+\setlength{\headheight}{15.2pt}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[C]{FDOH-Alachua $\bullet$ Disease Control Unit}
+\fancyfoot[C]{  $\bullet$ Joseph.Brew@FLHealth.gov$\bullet$  }
+\renewcommand\headrulewidth{1pt}
+\renewcommand\footrulewidth{1pt}
+\pagestyle{fancy}
+\rfoot{Page \thepage}
+
+
+
+\usepackage[font=small,skip=-10pt]{caption}
+
+
+\begin{document}
+\SweaveOpts{concordance=TRUE, echo=FALSE, results=hide}
+\newgeometry{margin=2.5cm}
+\fancyhfoffset[O,O]{0pt}
+
+\begin{center}
+\begin{huge}
+Daily Surveillance Report \\
+\end{huge}
+\Sexpr{format(Sys.Date(), format="%B %d, %Y")} \\
+Joe Brew
+
+\end{center}
+
+<<echo=FALSE, results=hide, fig=FALSE>>=
+par(mar=c(5,2,2,1))
+par(oma=c(0,0,0,0))
+today <- Sys.Date()  
+
+
+###################
+#DEFINE AND SET WD
+###################
+
+if ( Sys.info()["sysname"] == "Linux" ){
+  
+  originalwd <- paste0("/media/joebrew/JB/fdoh/private/surv/", today)
+  survwd <- "/media/joebrew/JB/fdoh/private/surv"
+  historicalwd <- "/media/joebrew/JB/fdoh/private/surv/historical"
+  giswd <- "/media/joebrew/JB/fdoh/private/surv/gis"
+  
+} else {
+  
+  originalwd <- paste0("E:/fdoh/private/surv/", today)
+  survwd <- "E:/fdoh/private/surv"
+  historicalwd <- "E:/fdoh/private/surv/historical"
+  giswd <- "E:/fdoh/private/surv/gis"
+  
+}
+
+setwd(originalwd) 
+
+
+symnames <- c("GI", "ILI", "Neuro", "Rash", "Resp")
+
+library(RColorBrewer)
+library(gdata)
+#library(plyr)
+library(maps)
+library(mapdata)
+library(maptools)
+library(RColorBrewer)
+##library(rJava)
+#library(OpenStreetMap)
+library(rgdal)
+library(shapefiles)
+library(xtable)
+library(SemiPar)
+library(wordcloud)
+library(classInt)
+library(dplyr)
+library(gstat)
+library(geoR)
+library(rgdal)
+
+
+
+setwd(originalwd)
+load(paste(survwd, "/",
+           today,
+           "/",
+           "zap.Rdata", sep=""))
+
+roi$Date <- as.Date(roi$Date, format="%Y-%m-%d")
+
+setwd(originalwd)
+@
+\setkeys{Gin}{width=0.8\textwidth}
+
+
+
+
+\begin{figure}[H]
+\begin{center}
+<<fig=TRUE>>=
+par(mar=c(0,0,0,0))
+par(oma=c(0,0,0,0))
+
+wordcloud(words=myCloud$word,
+          freq=myCloud$prop^3,
+          scale=c(2,0.00001),
+          max.words=Inf,
+          random.order=FALSE,
+          rot.per=0,
+          colors=myCloud$color[order(myCloud$prop^3)],
+          ordered.colors=FALSE)
+@
+\end{center}
+\end{figure}
+\vspace{20 mm}
+
+
+\newgeometry{margin=2.5cm}
+
+
+
+
+
+  
+\tableofcontents
+
+\begin{center}
+
+\vspace{30 mm}
+
+
+\begin{figure}[ht!]
+\centering
+\includegraphics[height=50, width=50]{doh.png}
+\label{overflow}
+\end{figure}
+\end{center}
+
+\newgeometry{margin=2.5cm}
+\begin{center}
+\section*{Visual Overview}
+\addcontentsline{toc}{section}{Visual Overview}
+\end{center}
+\begin{figure}[H]
+\begin{center}
+<<height=1.8, fig=TRUE>>=
+par(mfrow=c(1,2))
+par(mar=c(1,1,1,0))
+par(oma=c(1,1,1,0))
+TimeSeriesFun(variable = heat$gi,
+              color=adjustcolor(symcols[1], alpha.f=0.6))
+MapProp(variable = zip$giper,
+        color = "Reds")
+title(main="GI", outer=TRUE, cex.main=0.75, line=-0.3)
+@
+\end{center}
+\end{figure}
+\vspace{-10mm}
+
+\begin{figure}[H]
+\begin{center}
+<<height=1.8, fig=TRUE>>=
+par(mfrow=c(1,2))
+par(mar=c(1,1,1,0))
+par(oma=c(1,1,1,0))
+
+TimeSeriesFun(variable = heat$ili,
+              color=adjustcolor(symcols[2], alpha.f=0.6))
+MapProp(variable = zip$iliper,
+        color = "Blues")
+title(main="ILI", outer=TRUE, cex.main=0.75, line=-0.3)
+@
+\end{center}
+\end{figure}
+\vspace{-10mm}
+
+
+\begin{figure}[H]
+\begin{center}
+<<height=1.8, fig=TRUE>>=
+par(mfrow=c(1,2))
+par(mar=c(1,1,1,0))
+par(oma=c(1,1,1,0))
+
+TimeSeriesFun(variable = heat$neuro,
+              color=adjustcolor(symcols[3], alpha.f=0.6))
+MapProp(variable = zip$neuroper,
+        color = "Greens")
+title(main="Neuro", outer=TRUE, cex.main=0.75, line=-0.3)
+@
+\end{center}
+\end{figure}
+\vspace{-10mm}
+
+
+\begin{figure}[H]
+\begin{center}
+<<height=1.8, fig=TRUE>>=
+par(mfrow=c(1,2))
+par(mar=c(1,1,1,0))
+par(oma=c(1,1,1,0))
+
+TimeSeriesFun(variable = heat$rash,
+              color=adjustcolor(symcols[4], alpha.f=0.6))
+MapProp(variable = zip$rashper,
+        color = "Purples")
+title(main="Rash", outer=TRUE, cex.main=0.75, line=-0.3)
+@
+\end{center}
+\end{figure}
+
+\vspace{-10mm}
+
+\begin{figure}[H]
+\begin{center}
+<<height=1.8, fig=TRUE>>=
+par(mfrow=c(1,2))
+par(mar=c(1,1,1,0))
+par(oma=c(1,1,1,0))
+
+TimeSeriesFun(variable = heat$resp,
+              color=adjustcolor(symcols[5], alpha.f=0.6))
+MapProp(variable = zip$respper,
+        color = "Oranges")
+title(main="Resp", outer=TRUE, cex.main=0.75, line=-0.3)
+@
+\end{center}
+\end{figure}
+
+
+
+% \newgeometry{margin=2.5cm}
+% \begin{center}
+% \section*{New section: Hotspots}
+% \addcontentsline{toc}{section}{New section: Hotspots}
+% \end{center}
+% \begin{figure}[H]
+% \begin{center}
+% <<height=1.8, fig=TRUE>>=
+% par(mar=c(1,0,0,0))
+% par(oma = c(0,0,0,0))
+% my_colors <- colorRampPalette(c("blue", "yellow", "red"))(100)
+% 
+% SurfaceFun("gi")
+% title(main="GI", outer=TRUE, cex.main=0.75, line=-0.6)
+% @
+% \end{center}
+% \end{figure}
+% \vspace{-10mm}
+% 
+% 
+% \begin{figure}[H]
+% \begin{center}
+% <<height=1.8, fig=TRUE>>=
+% par(mar=c(1,0,0,0))
+% par(oma = c(0,0,0,0))
+% my_colors <- colorRampPalette(c("blue", "yellow", "red"))(100)
+% SurfaceFun("ili")
+% title(main="ILI", outer=TRUE, cex.main=0.75, line=-0.6)
+% @
+% \end{center}
+% \end{figure}
+% \vspace{-10mm}
+% 
+% \begin{figure}[H]
+% \begin{center}
+% <<height=1.8, fig=TRUE>>=
+% par(mar=c(1,0,0,0))
+% par(oma = c(0,0,0,0))
+% my_colors <- colorRampPalette(c("blue", "yellow", "red"))(100)
+% SurfaceFun("neuro")
+% title(main="Neurological", outer=TRUE, cex.main=0.75, line=-0.6)
+% @
+% \end{center}
+% \end{figure}
+% \vspace{-10mm}
+% 
+% \begin{figure}[H]
+% \begin{center}
+% <<height=1.8, fig=TRUE>>=
+% par(mar=c(1,0,0,0))
+% par(oma = c(0,0,0,0))
+% my_colors <- colorRampPalette(c("blue", "yellow", "red"))(100)
+% 
+% SurfaceFun("rash")
+% title(main="Rash", outer=TRUE, cex.main=0.75, line=-0.6)
+% @
+% \end{center}
+% \end{figure}
+% \vspace{-10mm}
+% 
+% \begin{figure}[H]
+% \begin{center}
+% <<height=1.8, fig=TRUE>>=
+% par(mar=c(1,0,0,0))
+% par(oma = c(0,0,0,0))
+% my_colors <- colorRampPalette(c("blue", "yellow", "red"))(100)
+% 
+% SurfaceFun("resp")
+% title(main="Respiratory", outer=TRUE, cex.main=0.75, line=-0.6)
+% @
+% \end{center}
+% \end{figure}
+% \vspace{-10mm}
+
+
+
+\newgeometry{margin=2.5cm}
+
+
+\begin{center}
+\section*{Records of interest (previous week)}
+\end{center}
+\addcontentsline{toc}{subsection}{Records of interest}
+
+
+
+\begin{table}[H]
+<<results=tex, keep.source=TRUE>>=
+print(xtable(roc[which(roc$Date > yesterday -6),]), include.rownames=FALSE, size="\\tiny")
+@
+\end{table}
+
+
+\begin{center}
+\section*{Flagged Terms}
+\addcontentsline{toc}{section}{Flagged terms}
+\end{center}
+
+
+%\begin{center}
+%<<results=tex, print=TRUE>>=
+%print(xtable(flag, digits=2),include.rownames=FALSE)
+%@
+%\end{center}
+There were \Sexpr{nrow(flag)} flagged terms yesterday. 
+
+\begin{figure}[H]
+\begin{center}
+<<fig=TRUE>>=
+if(nrow(flag)>9){
+  flag <- flag[1:9,]
+  flagSearch <- flagSearch[,1:10]
+}
+flag$Yesterday <- as.numeric(as.character(flag$Yesterday))
+par(mar=c(2,2,2,1))
+par(oma=c(0,0,0,0))
+par(mfrow=c(ceiling(length(flag$Word)/3),3))
+for (i in colnames(flagSearch[,2:(length(flag$Word)+1)])){
+  plot(flagSearch$Date, flagSearch[,i], main=i, xlab="Date", ylab="Cases", lty=1,
+       lwd=1, col=adjustcolor("red", alpha.f=0.6), type="l", xaxt="n",
+       xlim=c(yesterday-q, yesterday),
+       ylim=c(0,2*max(flag$Yesterday[which(flag$Word == i)]))
+      )
+  points(flagSearch$Date, flagSearch[,i], pch=16, cex=1, col=adjustcolor("black", alpha.f=0.4))
+  axis(side=1, at=flagSearch$Date, labels=format(flagSearch$Date, format="%d %b"), las=3, cex.axis=0.4)
+  abline(h=flag$Baseline[which(flag$Word == i)], lwd=3, col=adjustcolor("blue", alpha.f=0.2))}
+  legend(x="topleft", bty="n", border=FALSE, cex=0.6, lwd=3, col=adjustcolor("blue", alpha.f=0.2),
+         legend="2012-13 seasonal baseline")
+par(mfrow=c(1,1))
+@
+\end{center}
+\end{figure}
+
+\newpage
+
+\begin{center}
+\section*{Rabies}
+\addcontentsline{toc}{section}{Rabies}
+
+\end{center}
+
+\subsection*{Rabies detection yesterday}
+
+
+\begin{table}[H]
+<<results=tex, keep.source=TRUE>>=
+rabiesyest$Date <- as.character(rabiesyest$Date)
+print(xtable(rabiesyest[,c("Date", "Age", "Zipcode", "MedRecNo",
+                          "Sex", "CCDD", "Region", "Hospital")]),size="\\tiny", include.rownames=FALSE)
+@
+\end{table}
+
+
+
+\subsection*{Rabies detection last 7 days}
+
+\begin{table}[H]
+<<results=tex, keep.source=TRUE>>=
+rabies7$Date <- as.character(rabies7$Date)
+print(xtable(rabies7[,c("Date", "Age", "Zipcode", "MedRecNo",
+                          "Sex", "CCDD", "Region", "Hospital")]),size="\\tiny", include.rownames=FALSE)
+@
+\end{table}
+
+\newpage
+\subsection*{Ebola detection last 7 days}
+
+A detection algorithm has been written specifically for detecting potential ebola cases:
+
+There have been \Sexpr{nrow(ebola)} detection(s) this week:
+
+\begin{table}[H]
+<<results=tex, keep.source=TRUE>>=
+ebola$Date <- as.character(ebola$Date)
+print(xtable(ebola[,c("Date", "Age", "Zipcode", "MedRecNo",
+                          "Sex", "CCDD", "Region", "Hospital")]), include.rownames=FALSE, size="\\tiny")
+@
+\end{table}
+
+\subsection*{WNV detection last 7 days}
+
+A detection algorithm has been written specifically for detecting potential WNV cases:
+
+There have been \Sexpr{nrow(wnv)} detection(s) this week:
+
+\begin{table}[H]
+<<results=tex, keep.source=TRUE>>=
+wnv$Date <- as.character(wnv$Date)
+print(xtable(wnv[,c("Date", "Age", "Zipcode", "MedRecNo",
+                          "Sex", "CCDD", "Region", "Hospital")]), include.rownames=FALSE, size="\\tiny")
+@
+\end{table}
+
+
+\section*{Synthetic Marijuana: potentially-related cases}
+<<>>=
+marijuana <- examineFun("MARIJUANA|SYNTHETIC|K2|SPICE|OVERDOSE|POISON|SMOKE")
+marijuana$Date <- as.character(marijuana$Date)
+
+@
+
+<<>>=
+mari <- alless1213[which(grepl(regexFun("MARIJUANA|SYNTHETIC|K2|SPICE|OVERDOSE|POISON|SMOKE"),
+                               alless1213$CCDD)),]
+library(dplyr)
+mari_ts <- 
+  mari %>%
+  group_by(Date) %>%
+  summarise(cases = n()) %>%
+  arrange(Date)
+
+x <- merge(heat, mari_ts,
+           by = "Date",
+           all.x = TRUE,
+           all.y = FALSE)
+
+x$cases[is.na(x$cases)] <- 0
+@
+
+<<fig = TRUE, height = 3.2>>=
+par(mfrow=c(1,2))
+plot(x$Date, x$cases,
+     xlab = "Date",
+     ylab = "Cases",
+     main = "Patients with CCDD mentioning marijuana",
+     cex.main = 0.5)
+points(x$Date, x$cases,
+       pch = 16,
+       col = adjustcolor("darkgreen", alpha.f = 0.3))
+lines(x$Date, x$cases,
+      lwd = 1,
+      col = adjustcolor("black", alpha.f = 0.3))
+
+plot(x$Date, x$cases,
+     xlab = "Date",
+     ylab = "Cases",
+     main = "Last 30 days",
+     cex.main = 0.5,
+     xlim = c(yesterday - 30, yesterday))
+points(x$Date, x$cases,
+       pch = 16,
+       col = adjustcolor("darkgreen", alpha.f = 0.3))
+lines(x$Date, x$cases,
+      lwd = 1,
+      col = adjustcolor("black", alpha.f = 0.3))
+
+
+@
+
+
+\begin{table}[H]
+<<results=tex, keep.source=TRUE>>=
+print(xtable(marijuana[,c("Date", "Age", "Zipcode", "MedRecNo",
+                          "Sex", "CCDD", "Region", "Hospital")]), include.rownames=FALSE, size="\\tiny")
+@
+\end{table}
+
+
+\newgeometry{margin=2.5cm}
+\begin{center}
+
+\section*{Charts and Maps}
+\addcontentsline{toc}{section}{Charts and Maps}
+\subsection*{GI Charts}
+\addcontentsline{toc}{subsection}{GI Charts}
+\end{center}
+
+\begin{figure}[H]
+\begin{center}
+<<height=9, fig=TRUE>>=
+if(nrow(giyest) > 0 ){
+  par(mar=c(5,4,4,4))
+par(oma=c(0,0,0,0))
+par(mfrow=c(3,2))
+
+HistFun(variable = dist$gi, 
+        color = symcols[1])
+
+AgeHistFun(variable = giyest$Age,
+           baseline = symOld$Age[which(symOld$bl == TRUE &
+                                         symOld$cat == "gi")],
+           color = symcols[1])
+
+TimeHistFun(variable = giyest$HalfHour,
+           baseline = symOld$HalfHour[which(symOld$bl == TRUE &
+                                              symOld$cat == "gi")],
+           color = symcols[1]) 
+
+SexFun(variable = giyest$Sex,
+       baseline = symOld$Sex[which(symOld$bl == TRUE &
+                                     symOld$cat == "gi")],
+       color= symcols[1])
+
+RaceFun(variable = giyest$race,
+        baseline = symOld$race[which(symOld$bl == TRUE &
+                                       symOld$cat == "gi")],
+        color=symcols[1])
+
+TimeSeriesFun(variable = heat$gi,
+              color=symcols[1])
+} else { 
+  par(mfrow = c(1,1))
+  barplot(1:10, border = 'white',
+          xlab = NA,
+          ylab = NA)
+  }
+
+
+@
+\end{center}
+\end{figure}
+
+\subsection*{GI Maps}
+
+\begin{figure}[H]
+\begin{center}
+<<height=9, fig=TRUE>>=  
+
+if(nrow(giyest) > 0 ){
+  
+par(mfrow=c(2,2))
+par(oma=c(1,1,1,1))
+par(mar=c(1,1,1,1))
+
+#GI ZIP CODE MAPS#################
+
+#Yesterday cases
+MapCases(variable = zip$gi,
+        color = "Reds")
+text(x=zip.map$labelposx[which(zip$gi > -1)], 
+     y=zip.map$labelposy[which(zip$gi > -1)],
+     labels=zip.map$text[which(zip$gi > -1)], 
+     cex=0.1, col="grey20")
+text(x=zip.map$labelposx[which(zip$gi > 0)], 
+     y=zip.map$labelposy[which(zip$gi > 0)]-5000,
+     labels=zip$gi[which(zip$gi > 0)], 
+     cex=0.4, col=adjustcolor("darkgreen", alpha.f=0.6))
+
+title(main="Cases yesterday")
+
+
+#Yesterday prop
+MapProp(variable = zip$giper,
+        color = "Reds")
+text(x=zip.map$labelposx[which(zip$gi > -1)], 
+     y=zip.map$labelposy[which(zip$gi > -1)],
+     labels=zip.map$text[which(zip$gi > -1)], 
+     cex=0.1, col="grey20")
+text(x=zip.map$labelposx[which(zip$gi > 0)], 
+     y=zip.map$labelposy[which(zip$gi > 0)]-5000,
+     labels=zip$gi[which(zip$gi > 0)], 
+     cex=0.4, col=adjustcolor("darkgreen", alpha.f=0.6))
+text(x=zip.map$labelposx[which(zip$gi > 0)]+6000, 
+     y=zip.map$labelposy[which(zip$gi > 0)]-5000,
+     labels=paste0("(", 
+                   round(zip$gibl[which(zip$gi > 0)], digits=2),
+                   " is \n normal)"), 
+     cex=0.2, col=adjustcolor("grey30", alpha.f=0.6))
+title(main="Cases yesterday (proportional)")
+
+#This week cases
+MapCasesWeek(variable = zip$giweek,
+             color = "Reds")
+text(x=zip.map$labelposx[which(zip$gi > -1)], 
+     y=zip.map$labelposy[which(zip$gi > -1)],
+     labels=zip.map$text[which(zip$gi > -1)], 
+     cex=0.1, col="grey20")
+text(x=zip.map$labelposx[which(zip$gi > 0)], 
+     y=zip.map$labelposy[which(zip$gi > 0)]-5000,
+     labels=zip$giweek[which(zip$gi > 0)], 
+     cex=0.4, col=adjustcolor("darkgreen", alpha.f=0.6))
+title(main="Cases this week")
+
+#This week prop
+MapProp(variable = ifelse(is.infinite(zip$giweek / (zip$gibl*7)),
+                          2,
+        zip$giweek / (zip$gibl*7)),
+        color="Reds")
+text(x=zip.map$labelposx[which(zip$gi > -1)], 
+     y=zip.map$labelposy[which(zip$gi > -1)],
+     labels=zip.map$text[which(zip$gi > -1)], 
+     cex=0.1, col="grey20")
+text(x=zip.map$labelposx[which(zip$gi > 0)], 
+     y=zip.map$labelposy[which(zip$gi > 0)]-4000,
+     labels=zip$giweek[which(zip$gi > 0)], 
+     cex=0.4, col=adjustcolor("darkgreen", alpha.f=0.6))
+text(x=zip.map$labelposx[which(zip$gi > 0)]+7000, 
+     y=zip.map$labelposy[which(zip$gi > 0)]-4000,
+     labels=paste0("(", 
+                   round(7*zip$gibl[which(zip$gi > 0)], digits=2),
+                   " is \n normal)"), 
+     cex=0.2, col=adjustcolor("grey30", alpha.f=0.6))
+title(main="Cases this week (proportional)")
+} else { 
+  par(mfrow = c(1,1))
+  barplot(1:10, border = 'white',
+          xlab = NA,
+          ylab = NA)
+  }
+
+@
+\end{center}
+\end{figure}
+
+
+\newpage
+
+\subsection*{ILI Charts}
+\addcontentsline{toc}{subsection}{ILI Charts}
+
+\begin{figure}[H]
+\begin{center}
+<<height=9, fig=TRUE>>=
+
+if(nrow(iliyest) > 0 ){
+  
+par(mar=c(5,4,4,4))
+par(oma=c(0,0,0,0))
+par(mfrow=c(3,2))
+
+HistFun(variable = dist$ili, 
+        color = symcols[2])
+
+AgeHistFun(variable = iliyest$Age,
+           baseline = symOld$Age[which(symOld$bl == TRUE &
+                                         symOld$cat == "ili")],
+           color = symcols[2])
+
+TimeHistFun(variable = iliyest$HalfHour,
+           baseline = symOld$HalfHour[which(symOld$bl == TRUE &
+                                              symOld$cat == "ili")],
+           color = symcols[2]) 
+
+SexFun(variable = iliyest$Sex,
+       baseline = symOld$Sex[which(symOld$bl == TRUE &
+                                     symOld$cat == "ili")],
+       color= symcols[2])
+
+RaceFun(variable = iliyest$race,
+        baseline = symOld$race[which(symOld$bl == TRUE &
+                                       symOld$cat == "ili")],
+        color=symcols[2])
+
+TimeSeriesFun(variable = heat$ili,
+              color=symcols[2])
+} else { 
+  par(mfrow = c(1,1))
+  barplot(1:10, border = 'white',
+          xlab = NA,
+          ylab = NA)
+  }
+
+@
+\end{center}
+\end{figure}
+
+\subsection*{ILI Maps}
+
+\begin{figure}[H]
+\begin{center}
+<<height=9, fig=TRUE>>=  
+
+
+if(nrow(iliyest) > 0 ){
+  par(mfrow=c(2,2))
+par(oma=c(1,1,1,1))
+par(mar=c(1,1,1,1))
+
+#ili ZIP CODE MAPS#################
+
+#Yesterday cases
+MapCases(variable = zip$ili,
+        color = "Blues")
+text(x=zip.map$labelposx[which(zip$ili > -1)], 
+     y=zip.map$labelposy[which(zip$ili > -1)],
+     labels=zip.map$text[which(zip$ili > -1)], 
+     cex=0.1, col="grey20")
+text(x=zip.map$labelposx[which(zip$ili > 0)], 
+     y=zip.map$labelposy[which(zip$ili > 0)]-5000,
+     labels=zip$ili[which(zip$ili > 0)], 
+     cex=0.4, col=adjustcolor("darkgreen", alpha.f=0.6))
+title(main="Cases yesterday")
+
+
+#Yesterday prop
+MapProp(variable = zip$iliper,
+        color = "Blues")
+text(x=zip.map$labelposx[which(zip$ili > -1)], 
+     y=zip.map$labelposy[which(zip$ili > -1)],
+     labels=zip.map$text[which(zip$ili > -1)], 
+     cex=0.1, col="grey20")
+text(x=zip.map$labelposx[which(zip$ili > 0)], 
+     y=zip.map$labelposy[which(zip$ili > 0)]-5000,
+     labels=zip$ili[which(zip$ili > 0)], 
+     cex=0.4, col=adjustcolor("darkgreen", alpha.f=0.6))
+text(x=zip.map$labelposx[which(zip$ili > 0)]+6000, 
+     y=zip.map$labelposy[which(zip$ili > 0)]-5000,
+     labels=paste0("(", 
+                   round(zip$ilibl[which(zip$ili > 0)], digits=2),
+                   " is \n normal)"), 
+     cex=0.2, col=adjustcolor("grey30", alpha.f=0.6))
+title(main="Cases yesterday (proportional)")
+
+#This week cases
+MapCasesWeek(variable = zip$iliweek,
+             color = "Blues")
+text(x=zip.map$labelposx[which(zip$ili > -1)], 
+     y=zip.map$labelposy[which(zip$ili > -1)],
+     labels=zip.map$text[which(zip$ili > -1)], 
+     cex=0.1, col="grey20")
+text(x=zip.map$labelposx[which(zip$ili > 0)], 
+     y=zip.map$labelposy[which(zip$ili > 0)]-5000,
+     labels=zip$iliweek[which(zip$ili > 0)], 
+     cex=0.4, col=adjustcolor("darkgreen", alpha.f=0.6))
+title(main="Cases this week")
+
+#This week prop
+MapProp(variable = ifelse(is.infinite(zip$iliweek / (zip$ilibl*7)),
+                          2,
+        zip$iliweek / (zip$ilibl*7)),
+        color="Blues")
+text(x=zip.map$labelposx[which(zip$ili > -1)], 
+     y=zip.map$labelposy[which(zip$ili > -1)],
+     labels=zip.map$text[which(zip$ili > -1)], 
+     cex=0.1, col="grey20")
+text(x=zip.map$labelposx[which(zip$ili > 0)], 
+     y=zip.map$labelposy[which(zip$ili > 0)]-4000,
+     labels=zip$iliweek[which(zip$ili > 0)], 
+     cex=0.4, col=adjustcolor("darkgreen", alpha.f=0.6))
+text(x=zip.map$labelposx[which(zip$ili > 0)]+7000, 
+     y=zip.map$labelposy[which(zip$ili > 0)]-4000,
+     labels=paste0("(", 
+                   round(7*zip$ilibl[which(zip$ili > 0)], digits=2),
+                   " is \n normal)"), 
+     cex=0.2, col=adjustcolor("grey30", alpha.f=0.6))
+title(main="Cases this week (proportional)")
+} else { 
+  par(mfrow = c(1,1))
+  barplot(1:10, border = 'white',
+          xlab = NA,
+          ylab = NA)
+  }
+
+@
+\end{center}
+\end{figure}
+
+
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+\subsection*{Neurological Charts}
+\addcontentsline{toc}{subsection}{Neurological Charts}
+
+\begin{figure}[H]
+\begin{center}
+<<height=9, fig=TRUE>>=
+
+
+if(nrow(neuroyest) > 0 ){
+  
+par(mar=c(5,4,4,4))
+par(oma=c(0,0,0,0))
+par(mfrow=c(3,2))
+
+HistFun(variable = dist$neuro, 
+        color = symcols[3])
+
+AgeHistFun(variable = neuroyest$Age,
+           baseline = symOld$Age[which(symOld$bl == TRUE &
+                                         symOld$cat == "neuro")],
+           color = symcols[3])
+
+TimeHistFun(variable = neuroyest$HalfHour,
+           baseline = symOld$HalfHour[which(symOld$bl == TRUE &
+                                              symOld$cat == "neuro")],
+           color = symcols[3]) 
+
+SexFun(variable = neuroyest$Sex,
+       baseline = symOld$Sex[which(symOld$bl == TRUE &
+                                     symOld$cat == "neuro")],
+       color= symcols[3])
+
+RaceFun(variable = neuroyest$race,
+        baseline = symOld$race[which(symOld$bl == TRUE &
+                                       symOld$cat == "neuro")],
+        color=symcols[3])
+
+TimeSeriesFun(variable = heat$neuro,
+              color=symcols[3])
+} else { 
+  par(mfrow = c(1,1))
+  barplot(1:10, border = 'white',
+          xlab = NA,
+          ylab = NA)
+  }
+
+@
+\end{center}
+\end{figure}
+
+\subsection*{Neurological Maps}
+
+\begin{figure}[H]
+\begin{center}
+<<height=9, fig=TRUE>>=
+
+
+if(nrow(neuroyest) > 0 ){
+  
+
+par(mfrow=c(2,2))
+par(oma=c(1,1,1,1))
+par(mar=c(1,1,1,1))
+
+#Neurological ZIP CODE MAPS#################
+
+#Yesterday cases
+MapCases(variable = zip$neuro,
+        color = "Greens")
+text(x=zip.map$labelposx[which(zip$neuro > -1)], 
+     y=zip.map$labelposy[which(zip$neuro > -1)],
+     labels=zip.map$text[which(zip$neuro > -1)], 
+     cex=0.1, col="grey20")
+text(x=zip.map$labelposx[which(zip$neuro > 0)], 
+     y=zip.map$labelposy[which(zip$neuro > 0)]-5000,
+     labels=zip$neuro[which(zip$neuro > 0)], 
+     cex=0.4, col=adjustcolor("darkgreen", alpha.f=0.6))
+title(main="Cases yesterday")
+
+
+#Yesterday prop
+MapProp(variable = zip$neuroper,
+        color = "Greens")
+text(x=zip.map$labelposx[which(zip$neuro > -1)], 
+     y=zip.map$labelposy[which(zip$neuro > -1)],
+     labels=zip.map$text[which(zip$neuro > -1)], 
+     cex=0.1, col="grey20")
+text(x=zip.map$labelposx[which(zip$neuro > 0)], 
+     y=zip.map$labelposy[which(zip$neuro > 0)]-5000,
+     labels=zip$neuro[which(zip$neuro > 0)], 
+     cex=0.4, col=adjustcolor("darkgreen", alpha.f=0.6))
+text(x=zip.map$labelposx[which(zip$neuro > 0)]+6000, 
+     y=zip.map$labelposy[which(zip$neuro > 0)]-5000,
+     labels=paste0("(", 
+                   round(zip$neurobl[which(zip$neuro > 0)], digits=2),
+                   " is \n normal)"), 
+     cex=0.2, col=adjustcolor("grey30", alpha.f=0.6))
+title(main="Cases yesterday (proportional)")
+
+#This week cases
+MapCasesWeek(variable = zip$neuroweek,
+             color = "Greens")
+text(x=zip.map$labelposx[which(zip$neuro > -1)], 
+     y=zip.map$labelposy[which(zip$neuro > -1)],
+     labels=zip.map$text[which(zip$neuro > -1)], 
+     cex=0.1, col="grey20")
+text(x=zip.map$labelposx[which(zip$neuro > 0)], 
+     y=zip.map$labelposy[which(zip$neuro > 0)]-5000,
+     labels=zip$neuroweek[which(zip$neuro > 0)], 
+     cex=0.4, col=adjustcolor("darkgreen", alpha.f=0.6))
+title(main="Cases this week")
+
+#This week prop
+MapProp(variable = ifelse(is.infinite(zip$neuroweek / (zip$neurobl*7)),
+                          2,
+        zip$neuroweek / (zip$neurobl*7)),
+        color="Greens")
+text(x=zip.map$labelposx[which(zip$neuro > -1)], 
+     y=zip.map$labelposy[which(zip$neuro > -1)],
+     labels=zip.map$text[which(zip$neuro > -1)], 
+     cex=0.1, col="grey20")
+text(x=zip.map$labelposx[which(zip$neuro > 0)], 
+     y=zip.map$labelposy[which(zip$neuro > 0)]-4000,
+     labels=zip$neuroweek[which(zip$neuro > 0)], 
+     cex=0.4, col=adjustcolor("darkgreen", alpha.f=0.6))
+text(x=zip.map$labelposx[which(zip$neuro > 0)]+7000, 
+     y=zip.map$labelposy[which(zip$neuro > 0)]-4000,
+     labels=paste0("(", 
+                   round(7*zip$neurobl[which(zip$neuro > 0)], digits=2),
+                   " is \n normal)"), 
+     cex=0.2, col=adjustcolor("grey30", alpha.f=0.6))
+title(main="Cases this week (proportional)")
+} else { 
+  par(mfrow = c(1,1))
+  barplot(1:10, border = 'white',
+          xlab = NA,
+          ylab = NA)
+}
+
+
+@
+\end{center}
+\end{figure}
+
+
+
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\subsection*{Rash Charts}
+\addcontentsline{toc}{subsection}{Rash Charts}
+\begin{figure}[H]
+\begin{center}
+<<height=9, fig=TRUE>>=
+
+
+if(nrow(rashyest) > 0 ){
+  
+par(mar=c(5,4,4,4))
+par(oma=c(0,0,0,0))
+par(mfrow=c(3,2))
+
+HistFun(variable = dist$rash, 
+        color = symcols[4])
+
+AgeHistFun(variable = rashyest$Age,
+           baseline = symOld$Age[which(symOld$bl == TRUE &
+                                         symOld$cat == "rash")],
+           color = symcols[4])
+
+TimeHistFun(variable = rashyest$HalfHour,
+           baseline = symOld$HalfHour[which(symOld$bl == TRUE &
+                                              symOld$cat == "rash")],
+           color = symcols[4]) 
+
+SexFun(variable = rashyest$Sex,
+       baseline = symOld$Sex[which(symOld$bl == TRUE &
+                                     symOld$cat == "rash")],
+       color= symcols[4])
+
+RaceFun(variable = rashyest$race,
+        baseline = symOld$race[which(symOld$bl == TRUE &
+                                       symOld$cat == "rash")],
+        color=symcols[4])
+
+TimeSeriesFun(variable = heat$rash,
+              color=symcols[4])
+} else { 
+  par(mfrow = c(1,1))
+  barplot(1:10, border = 'white',
+          xlab = NA,
+          ylab = NA)
+  }
+
+@
+\end{center}
+\end{figure}
+
+\subsection*{Rash Maps}
+
+\begin{figure}[H]
+\begin{center}
+<<height=9, fig=TRUE>>=
+
+if(nrow(rashyest) > 0 ){
+  
+par(mfrow=c(2,2))
+par(oma=c(1,1,1,1))
+par(mar=c(1,1,1,1))
+
+#Rash ZIP CODE MAPS#################
+
+#Yesterday cases
+MapCases(variable = zip$rash,
+        color = "Purples")
+text(x=zip.map$labelposx[which(zip$rash > -1)], 
+     y=zip.map$labelposy[which(zip$rash > -1)],
+     labels=zip.map$text[which(zip$rash > -1)], 
+     cex=0.1, col="grey20")
+text(x=zip.map$labelposx[which(zip$rash > 0)], 
+     y=zip.map$labelposy[which(zip$rash > 0)]-5000,
+     labels=zip$rash[which(zip$rash > 0)], 
+     cex=0.4, col=adjustcolor("darkgreen", alpha.f=0.6))
+title(main="Cases yesterday")
+
+
+#Yesterday prop
+MapProp(variable = zip$rashper,
+        color = "Purples")
+text(x=zip.map$labelposx[which(zip$rash > -1)], 
+     y=zip.map$labelposy[which(zip$rash > -1)],
+     labels=zip.map$text[which(zip$rash > -1)], 
+     cex=0.1, col="grey20")
+text(x=zip.map$labelposx[which(zip$rash > 0)], 
+     y=zip.map$labelposy[which(zip$rash > 0)]-5000,
+     labels=zip$rash[which(zip$rash > 0)], 
+     cex=0.4, col=adjustcolor("darkgreen", alpha.f=0.6))
+text(x=zip.map$labelposx[which(zip$rash > 0)]+6000, 
+     y=zip.map$labelposy[which(zip$rash > 0)]-5000,
+     labels=paste0("(", 
+                   round(zip$rashbl[which(zip$rash > 0)], digits=2),
+                   " is \n normal)"), 
+     cex=0.2, col=adjustcolor("grey30", alpha.f=0.6))
+title(main="Cases yesterday (proportional)")
+
+#This week cases
+MapCasesWeek(variable = zip$rashweek,
+             color = "Purples")
+text(x=zip.map$labelposx[which(zip$rash > -1)], 
+     y=zip.map$labelposy[which(zip$rash > -1)],
+     labels=zip.map$text[which(zip$rash > -1)], 
+     cex=0.1, col="grey20")
+text(x=zip.map$labelposx[which(zip$rash > 0)], 
+     y=zip.map$labelposy[which(zip$rash > 0)]-5000,
+     labels=zip$rashweek[which(zip$rash > 0)], 
+     cex=0.4, col=adjustcolor("darkgreen", alpha.f=0.6))
+title(main="Cases this week")
+
+#This week prop
+MapProp(variable = ifelse(is.infinite(zip$rashweek / (zip$rashbl*7)),
+                          2,
+        zip$rashweek / (zip$rashbl*7)),
+        color="Purples")
+text(x=zip.map$labelposx[which(zip$rash > -1)], 
+     y=zip.map$labelposy[which(zip$rash > -1)],
+     labels=zip.map$text[which(zip$rash > -1)], 
+     cex=0.1, col="grey20")
+text(x=zip.map$labelposx[which(zip$rash > 0)], 
+     y=zip.map$labelposy[which(zip$rash > 0)]-4000,
+     labels=zip$rashweek[which(zip$rash > 0)], 
+     cex=0.4, col=adjustcolor("darkgreen", alpha.f=0.6))
+text(x=zip.map$labelposx[which(zip$rash > 0)]+7000, 
+     y=zip.map$labelposy[which(zip$rash > 0)]-4000,
+     labels=paste0("(", 
+                   round(7*zip$rashbl[which(zip$rash > 0)], digits=2),
+                   " is \n normal)"), 
+     cex=0.2, col=adjustcolor("grey30", alpha.f=0.6))
+title(main="Cases this week (proportional)")
+} else { 
+  par(mfrow = c(1,1))
+  barplot(1:10, border = 'white',
+          xlab = NA,
+          ylab = NA)
+  }
+
+
+@
+\end{center}
+\end{figure}
+
+
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+\subsection*{Respiratory Charts}
+\addcontentsline{toc}{subsection}{Respiratory Charts}
+\begin{figure}[H]
+\begin{center}
+<<height=9, fig=TRUE>>=
+
+if(nrow(respyest) > 0 ){
+  
+par(mar=c(5,4,4,4))
+par(oma=c(0,0,0,0))
+par(mfrow=c(3,2))
+
+HistFun(variable = dist$resp, 
+        color = symcols[5])
+
+AgeHistFun(variable = respyest$Age,
+           baseline = symOld$Age[which(symOld$bl == TRUE &
+                                         symOld$cat == "resp")],
+           color = symcols[5])
+
+TimeHistFun(variable = respyest$HalfHour,
+           baseline = symOld$HalfHour[which(symOld$bl == TRUE &
+                                              symOld$cat == "resp")],
+           color = symcols[5]) 
+
+SexFun(variable = respyest$Sex,
+       baseline = symOld$Sex[which(symOld$bl == TRUE &
+                                     symOld$cat == "resp")],
+       color= symcols[5])
+
+RaceFun(variable = respyest$race,
+        baseline = symOld$race[which(symOld$bl == TRUE &
+                                       symOld$cat == "resp")],
+        color=symcols[5])
+
+TimeSeriesFun(variable = heat$resp,
+              color=symcols[5])
+} else { 
+  par(mfrow = c(1,1))
+  barplot(1:10, border = 'white',
+          xlab = NA,
+          ylab = NA)
+  }
+
+
+@
+\end{center}
+\end{figure}
+
+\subsection*{Respiratory Maps}
+
+\begin{figure}[H]
+\begin{center}
+<<height=9, fig=TRUE>>=
+
+
+if(nrow(respyest) > 0 ){
+  
+par(mfrow=c(2,2))
+par(oma=c(1,1,1,1))
+par(mar=c(1,1,1,1))
+
+#Respiratory ZIP CODE MAPS#################
+
+#Yesterday cases
+MapCases(variable = zip$resp,
+        color = "Oranges")
+text(x=zip.map$labelposx[which(zip$resp > -1)], 
+     y=zip.map$labelposy[which(zip$resp > -1)],
+     labels=zip.map$text[which(zip$resp > -1)], 
+     cex=0.1, col="grey20")
+text(x=zip.map$labelposx[which(zip$resp > 0)], 
+     y=zip.map$labelposy[which(zip$resp > 0)]-5000,
+     labels=zip$resp[which(zip$resp > 0)], 
+     cex=0.4, col=adjustcolor("darkgreen", alpha.f=0.6))
+title(main="Cases yesterday")
+
+
+#Yesterday prop
+MapProp(variable = zip$respper,
+        color = "Oranges")
+text(x=zip.map$labelposx[which(zip$resp > -1)], 
+     y=zip.map$labelposy[which(zip$resp > -1)],
+     labels=zip.map$text[which(zip$resp > -1)], 
+     cex=0.1, col="grey20")
+text(x=zip.map$labelposx[which(zip$resp > 0)], 
+     y=zip.map$labelposy[which(zip$resp > 0)]-5000,
+     labels=zip$resp[which(zip$resp > 0)], 
+     cex=0.4, col=adjustcolor("darkgreen", alpha.f=0.6))
+text(x=zip.map$labelposx[which(zip$resp > 0)]+6000, 
+     y=zip.map$labelposy[which(zip$resp > 0)]-5000,
+     labels=paste0("(", 
+                   round(zip$respbl[which(zip$resp > 0)], digits=2),
+                   " is \n normal)"), 
+     cex=0.2, col=adjustcolor("grey30", alpha.f=0.6))
+title(main="Cases yesterday (proportional)")
+
+#This week cases
+MapCasesWeek(variable = zip$respweek,
+             color = "Oranges")
+text(x=zip.map$labelposx[which(zip$resp > -1)], 
+     y=zip.map$labelposy[which(zip$resp > -1)],
+     labels=zip.map$text[which(zip$resp > -1)], 
+     cex=0.1, col="grey20")
+text(x=zip.map$labelposx[which(zip$resp > 0)], 
+     y=zip.map$labelposy[which(zip$resp > 0)]-5000,
+     labels=zip$respweek[which(zip$resp > 0)], 
+     cex=0.4, col=adjustcolor("darkgreen", alpha.f=0.6))
+title(main="Cases this week")
+
+#This week prop
+MapProp(variable = ifelse(is.infinite(zip$respweek / (zip$respbl*7)),
+                          2,
+        zip$respweek / (zip$respbl*7)),
+        color="Oranges")
+text(x=zip.map$labelposx[which(zip$resp > -1)], 
+     y=zip.map$labelposy[which(zip$resp > -1)],
+     labels=zip.map$text[which(zip$resp > -1)], 
+     cex=0.1, col="grey20")
+text(x=zip.map$labelposx[which(zip$resp > 0)], 
+     y=zip.map$labelposy[which(zip$resp > 0)]-4000,
+     labels=zip$respweek[which(zip$resp > 0)], 
+     cex=0.4, col=adjustcolor("darkgreen", alpha.f=0.6))
+text(x=zip.map$labelposx[which(zip$resp > 0)]+7000, 
+     y=zip.map$labelposy[which(zip$resp > 0)]-4000,
+     labels=paste0("(", 
+                   round(7*zip$respbl[which(zip$resp > 0)], digits=2),
+                   " is \n normal)"), 
+     cex=0.2, col=adjustcolor("grey30", alpha.f=0.6))
+title(main="Cases this week (proportional)")
+} else { 
+  par(mfrow = c(1,1))
+  barplot(1:10, border = 'white',
+          xlab = NA,
+          ylab = NA)
+  }
+
+
+
+@
+\end{center}
+\end{figure}
+
+
+
+\newpage
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+\section*{Historical Overview / Heat Calendars}
+\addcontentsline{toc}{section}{Historical Overview / Heat Calendars}
+
+\begin{figure}[H]
+\begin{center}
+<<fig=TRUE>>=
+
+calendarHeat(heat$Date, heat$gi, varname="GI symptoms")
+@
+\end{center}
+\end{figure}
+
+\newpage
+\begin{figure}[H]
+\begin{center}
+<<fig=TRUE>>=
+
+calendarHeat(heat$Date, heat$ili, varname="ILI symptoms")
+@
+\end{center}
+\end{figure}
+
+\newpage
+\begin{figure}[H]
+\begin{center}
+<<fig=TRUE>>=
+
+calendarHeat(heat$Date, heat$neuro, varname="Neurological symptoms")
+@
+\end{center}
+\end{figure}
+
+\newpage
+\begin{figure}[H]
+\begin{center}
+<<fig=TRUE>>=
+
+calendarHeat(heat$Date, heat$rash, varname="Rash symptoms")
+@
+\end{center}
+\end{figure}
+
+\newpage
+\begin{figure}[H]
+\begin{center}
+<<fig=TRUE>>=
+
+calendarHeat(heat$Date, heat$resp, varname="Respiratory symptoms")
+@
+\end{center}
+\end{figure}
+
+
+\newpage
+\section*{Flagged zip codes}
+The following are areas which are flagged for potential disease clusters. Patient records should be checked for these areas (following pages).  Beta version (still experimental).
+
+\begin{table}[H]
+<<results=tex, keep.source=TRUE>>=
+geoCluster <- geoCluster[which(geoCluster$Zipcode != "A"),]
+geoCluster <- geoCluster[order(geoCluster$Zipcode),]
+print(xtable(geoCluster),size="\\small", include.rownames=FALSE)
+@
+\end{table}
+
+
+\newgeometry{margin=1.5cm}
+\section*{Line Lists}
+
+<<eval = TRUE>>=
+giyest$Date <- as.character(giyest$Date)
+iliyest$Date <- as.character(iliyest$Date)
+neuroyest$Date <- as.character(neuroyest$Date)
+rashyest$Date <- as.character(rashyest$Date)
+respyest$Date <- as.character(respyest$Date)
+
+@
+
+\subsection*{GI yesterday}
+
+\begin{table}[H]
+<<results=tex, keep.source=TRUE>>=
+print(xtable(giyest[c("Date", "Age", "Zipcode", "MedRecNo",
+                          "Sex", "CCDD", "Hospital", "race")]),size="\\tiny", include.rownames=FALSE)
+@
+\end{table}
+
+\subsection*{ILI yesterday}
+
+\begin{table}[H]
+<<results=tex, keep.source=TRUE>>=
+print(xtable(iliyest[c("Date", "Age", "Zipcode", "MedRecNo",
+                          "Sex", "CCDD", "Hospital", "race")]),size="\\tiny", include.rownames=FALSE)
+@
+\end{table}
+
+\subsection*{Neuro yesterday}
+
+\begin{table}[H]
+<<results=tex, keep.source=TRUE>>=
+print(xtable(neuroyest[c("Date", "Age", "Zipcode", "MedRecNo",
+                          "Sex", "CCDD", "Hospital", "race")]),size="\\tiny", include.rownames=FALSE)
+@
+\end{table}
+
+\subsection*{Rash yesterday}
+
+\begin{table}[H]
+<<results=tex, keep.source=TRUE>>=
+print(xtable(rashyest[c("Date", "Age", "Zipcode", "MedRecNo",
+                          "Sex", "CCDD", "Hospital", "race")]),size="\\tiny", include.rownames=FALSE)
+@
+\end{table}
+
+\subsection*{Respiratory yesterday}
+
+\begin{table}[H]
+<<results=tex, keep.source=TRUE>>=
+print(xtable(respyest[c("Date", "Age", "Zipcode", "MedRecNo",
+                          "Sex", "CCDD", "Hospital", "race")]),size="\\tiny", include.rownames=FALSE)
+@
+\end{table}
+
+\newpage
+\begin{center}
+\section*{Further Information}
+\addcontentsline{toc}{section}{Further Information}
+
+\end{center}
+
+\subsection*{Technical details}
+\addcontentsline{toc}{subsection}{Technical details}
+
+This report was generated on \today.  The author used \Sexpr{print(version$version.string)} on a \Sexpr{print(version$platform)} platform.  \\
+
+The data was obtained from Essence on \today, and is not intended for public disclosure.  The opinions and recommendations in this report are solely those of the author and do not intend to represent DOH policy or practices.\\
+
+The data wrangling and analysis of this report was written in the R programming language, and the report production was programmed in Sweave and \LaTeX{}.\\
+
+\end{document}
